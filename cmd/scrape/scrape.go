@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MaxPostcode = 411000
+	MaxPostcode = 999999
 	BaseUrl     = "http://v.juhe.cn/postcode/"
 	Retry       = 5
 )
@@ -53,26 +53,23 @@ func Run(c *cli.Context) (err error) {
 
 	endpoint := "query"
 
-	param := url.Values{}
-
-	//配置请求参数,方法内部已处理urlencode问题,中文参数可以直接传参
-	//param.Set("postcode","") //邮编，如：215001
-	param.Set("key", key)       //应用APPKEY(应用详细页查询)
-	param.Set("page", "1")      //页数，默认1
-	param.Set("pagesize", "50") //每页返回，默认:20,最大不超过50
-	param.Set("dtype", "json")  //返回数据的格式,xml或json，默认json
-
 	var Failed []string
 	var wg sync.WaitGroup
 	limitChan := make(chan int, spiderNumber)
-	for i := 410000; i < MaxPostcode; i++ {
+	lines := make(chan string, 999999)
+
+	for i := 0; i < MaxPostcode; i++ {
 		wg.Add(1)
 		limitChan <- i
+		if c.Bool("debug") {
+			log.Printf("%d pushed", i)
+		}
 
 		go func() {
 			defer func() {
 				wg.Done()
-				<-limitChan
+				i := <-limitChan
+				log.Printf("%d poped", i)
 			}()
 
 			retry := Retry
@@ -81,7 +78,16 @@ func Run(c *cli.Context) (err error) {
 			var body []byte
 			if _, err := os.Stat(cachePath); os.IsNotExist(err) {
 			R:
+				log.Println(i)
 				u, _ := url.Parse(fmt.Sprintf("%s%s", BaseUrl, endpoint))
+				param := url.Values{}
+
+				//配置请求参数,方法内部已处理urlencode问题,中文参数可以直接传参
+				//param.Set("postcode","") //邮编，如：215001
+				param.Set("key", key)       //应用APPKEY(应用详细页查询)
+				param.Set("page", "1")      //页数，默认1
+				param.Set("pagesize", "50") //每页返回，默认:20,最大不超过50
+				param.Set("dtype", "json")  //返回数据的格式,xml或json，默认json
 				param.Set("postcode", code)
 				u.RawQuery = param.Encode()
 
@@ -108,7 +114,7 @@ func Run(c *cli.Context) (err error) {
 					return
 				}
 
-				body, _ := ioutil.ReadAll(resp.Body)
+				body, _ = ioutil.ReadAll(resp.Body)
 
 				// error code check
 				errorCode := gjson.GetBytes(body, "error_code")
@@ -160,23 +166,27 @@ func Run(c *cli.Context) (err error) {
 			}
 
 			line := fmt.Sprintf("%s,%s,%s,%s\n", code, pStr, cStr, dStr)
+			lines <- line
 
 			if c.Bool("debug") {
 				log.Print(line)
 			}
-
-			//ioutil.WriteFile(dataFile, []byte(line), 0644)
-			f, err := os.OpenFile(dataFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-			if err != nil {
-				log.Println(err)
-			}
-			defer f.Close()
-			if _, err = f.WriteString(line); err != nil {
-				log.Println(err)
-			}
 		}()
 	}
 	wg.Wait()
+	close(lines)
+
+	//ioutil.WriteFile(dataFile, []byte(line), 0644)
+	f, err := os.OpenFile(dataFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+	for line := range lines{
+		if _, err = f.WriteString(line); err != nil {
+			log.Println(err)
+		}
+	}
 
 	if c.Bool("debug") {
 		log.Printf("get %d errors, postcode is %v", len(Failed), Failed)
