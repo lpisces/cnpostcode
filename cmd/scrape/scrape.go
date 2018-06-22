@@ -57,6 +57,7 @@ func Run(c *cli.Context) (err error) {
 	var wg sync.WaitGroup
 	limitChan := make(chan int, spiderNumber)
 	lines := make(chan string, 999999)
+	mu := sync.Mutex{}
 
 	for i := 0; i < MaxPostcode; i++ {
 		wg.Add(1)
@@ -78,7 +79,7 @@ func Run(c *cli.Context) (err error) {
 			var body []byte
 			if _, err := os.Stat(cachePath); os.IsNotExist(err) {
 			R:
-				log.Println(i)
+				//log.Println(i)
 				u, _ := url.Parse(fmt.Sprintf("%s%s", BaseUrl, endpoint))
 				param := url.Values{}
 
@@ -175,7 +176,9 @@ func Run(c *cli.Context) (err error) {
 			}
 
 			line := fmt.Sprintf("%s,%s,%s,%s\n", code, pStr, cStr, dStr)
+			mu.Lock()
 			lines <- line
+			mu.Unlock()
 
 			if c.Bool("debug") {
 				log.Print(line)
