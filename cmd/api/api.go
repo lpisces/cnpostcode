@@ -76,7 +76,7 @@ func loadData(path string) (data map[string]string, err error){
 		//log.Println(scanner.Text())
 		arr := strings.Split(scanner.Text(), ",")
 		if len(arr) == 4 {
-			data[arr[0]] = fmt.Sprintf("%s%s%s", arr[1], arr[2], arr[3])
+			data[arr[0]] = fmt.Sprintf("%s,%s,%s", arr[1], arr[2], arr[3])
 		}
 	}
 	log.Println("load data success")
