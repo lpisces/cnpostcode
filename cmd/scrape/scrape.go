@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	MaxPostcode = 999999
+	MaxPostcode = 410100
 	BaseUrl     = "http://v.juhe.cn/postcode/"
 	Retry       = 5
 )
@@ -58,7 +58,7 @@ func Run(c *cli.Context) (err error) {
 	limitChan := make(chan int, spiderNumber)
 	lines := make(chan string, 999999)
 
-	for i := 0; i < MaxPostcode; i++ {
+	for i := 410000; i < MaxPostcode; i++ {
 		wg.Add(1)
 		limitChan <- i
 		if c.Bool("debug") {

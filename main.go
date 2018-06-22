@@ -65,6 +65,21 @@ func main() {
 					Name:  "debug, d",
 					Usage: "show debug info",
 				},
+				cli.StringFlag{
+					Name: "port, p",
+					Usage: "listen port",
+					Value: "1323",
+				},
+				cli.StringFlag{
+					Name: "bind, b",
+					Usage: "bind host",
+					Value: "127.0.0.1",
+				},
+				cli.StringFlag{
+					Name: "s, source",
+					Usage: "postcode data source",
+					Value: "./data/postcode.dat",
+				},
 			},
 		},
 	}
