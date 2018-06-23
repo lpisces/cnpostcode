@@ -56,7 +56,7 @@ func Run(c *cli.Context) (err error) {
 	var Failed []string
 	var wg sync.WaitGroup
 	limitChan := make(chan int, spiderNumber)
-	lines := make(chan string, 999999)
+	lines := make(chan string, MaxPostcode)
 	mu := sync.Mutex{}
 
 	for i := 0; i < MaxPostcode; i++ {
